@@ -1,26 +1,119 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ============================================================
+   DESIGN SYSTEM — BURGUERIA FERREIRA
+   Tokens centralizados aqui. Nunca use cores hardcoded
+   fora deste arquivo — sempre referencie as variáveis.
+   ============================================================ */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* Marca */
+    --brand:         oklch(65% 0.18 40);   /* laranja vibrante */
+    --brand-hover:   oklch(58% 0.18 40);
+    --brand-subtle:  oklch(20% 0.04 40);   /* laranja escuro sutil */
+
+    /* Superfícies — tema escuro */
+    --bg:            oklch(10% 0.005 240);  /* preto suave */
+    --bg-card:       oklch(14% 0.005 240);  /* card ligeiramente mais claro */
+    --bg-muted:      oklch(18% 0.005 240);  /* hover, inputs */
+
+    /* Bordas */
+    --border:        oklch(25% 0.005 240);
+    --border-strong: oklch(35% 0.01 240);
+
+    /* Texto */
+    --text-primary:  oklch(95% 0.005 240);  /* quase branco */
+    --text-muted:    oklch(65% 0.01 240);
+    --text-subtle:   oklch(45% 0.01 240);
+
+    /* Status dos pedidos */
+    --status-received:  oklch(65% 0.15 240);
+    --status-preparing: oklch(75% 0.16 85);
+    --status-ready:     oklch(65% 0.17 145);
+    --status-delivered: oklch(50% 0.01 240);
+    --status-cancelled: oklch(62% 0.18 25);
+
+    /* Feedback */
+    --success: oklch(62% 0.17 145);
+    --warning: oklch(72% 0.16 85);
+    --error:   oklch(58% 0.18 25);
+    --info:    oklch(60% 0.15 240);
+
+    /* Layout */
+    --sidebar-width:     240px;
+    --header-height:     56px;
+    --nav-mobile-height: 56px;
+    --radius:            0.5rem;
+    --radius-lg:         0.75rem;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Scrollbar discreta */
+  ::-webkit-scrollbar       { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+}
+
+/* ============================================================
+   UTILITÁRIOS DE LAYOUT
+   Classes reutilizáveis para padrões que se repetem
+   ============================================================ */
+@layer utilities {
+
+  /* Container principal do admin — desconta sidebar no desktop */
+  .admin-layout {
+    min-height: 100dvh;
+    padding-bottom: var(--nav-mobile-height); /* espaço pro nav mobile */
+  }
+
+  @media (min-width: 1024px) {
+    .admin-layout {
+      margin-left: var(--sidebar-width);
+      padding-bottom: 0;
+    }
+  }
+
+  /* Área de conteúdo com padding consistente */
+  .page-content {
+    padding: 1rem;
+    max-width: 1200px;
+  }
+
+  @media (min-width: 640px) {
+    .page-content {
+      padding: 1.5rem;
+    }
+  }
+
+  /* Card padrão do sistema */
+  .card-base {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1rem;
+  }
+
+  /* Badge de status — usa as variáveis de status */
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: white;
+  }
 }
