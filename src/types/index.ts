@@ -66,13 +66,14 @@ export interface Order {
 }
 
 export interface OrderItem {
-  id: string
-  order_id: string
-  product_id: string | null
-  product_name: string   // salvo no momento do pedido — integridade histórica
-  quantity: number
-  unit_price: number     // salvo no momento do pedido — integridade histórica
-  options?: OrderItemOption[]
+  id:           string
+  order_id:     string
+  product_id:   string | null
+  product_name: string
+  quantity:     number
+  unit_price:   number
+  product?:     { description: string | null }  
+  options?:     OrderItemOption[]
 }
 
 export interface OrderItemOption {

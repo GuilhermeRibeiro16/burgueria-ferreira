@@ -20,7 +20,12 @@ export function toBrasilia(date: Date | string): Date {
 }
 
 export function formatDate(date: Date | string, pattern = 'dd/MM/yyyy'): string {
-  return format(toBrasilia(date), pattern, { locale: ptBR })
+  const d = new Date(date)
+  if (isNaN(d.getTime())) {
+    console.error('formatDate recebeu data inválida:', date)
+    return '—'
+  }
+  return format(toZonedTime(d, TZ), pattern, { locale: ptBR })
 }
 
 export function formatDateTime(date: Date | string): string {

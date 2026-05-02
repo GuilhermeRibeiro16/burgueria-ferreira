@@ -24,8 +24,8 @@
 
     /* Texto */
     --text-primary:  oklch(95% 0.005 240);  /* quase branco */
-    --text-muted:    oklch(65% 0.01 240);
-    --text-subtle:   oklch(45% 0.01 240);
+    --text-muted:    oklch(80% 0.01 240);
+    --text-subtle:   oklch(75% 0.01 240);
 
     /* Status dos pedidos */
     --status-received:  oklch(65% 0.15 240);

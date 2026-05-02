@@ -7,15 +7,16 @@ export async function getOrdersToday() {
   const supabase = createAdminClient()
   const { start, end } = getDayRange(new Date())
 
-  const { data, error } = await supabase
-    .from('orders')
-    .select(`
+const { data, error } = await supabase
+  .from('orders')
+  .select(`
+    *,
+    items:order_items (
       *,
-      items:order_items (
-        *,
-        options:order_item_options (*)
-      )
-    `)
+      product:products ( description ),
+      options:order_item_options (*)
+    )
+  `)
     .gte('created_at', start)
     .lte('created_at', end)
     .order('created_at', { ascending: false })
@@ -29,15 +30,16 @@ export async function getOrdersByDate(date: Date) {
   const supabase = createAdminClient()
   const { start, end } = getDayRange(date)
 
-  const { data, error } = await supabase
-    .from('orders')
-    .select(`
+const { data, error } = await supabase
+  .from('orders')
+  .select(`
+    *,
+    items:order_items (
       *,
-      items:order_items (
-        *,
-        options:order_item_options (*)
-      )
-    `)
+      product:products ( description ),
+      options:order_item_options (*)
+    )
+  `)
     .gte('created_at', start)
     .lte('created_at', end)
     .order('created_at', { ascending: false })
@@ -50,15 +52,16 @@ export async function getOrdersByDate(date: Date) {
 export async function getOrderByCode(code: string) {
   const supabase = createAdminClient()
 
-  const { data, error } = await supabase
-    .from('orders')
-    .select(`
+const { data, error } = await supabase
+  .from('orders')
+  .select(`
+    *,
+    items:order_items (
       *,
-      items:order_items (
-        *,
-        options:order_item_options (*)
-      )
-    `)
+      product:products ( description ),
+      options:order_item_options (*)
+    )
+  `)
     .eq('code', code.toUpperCase())
     .single()
 

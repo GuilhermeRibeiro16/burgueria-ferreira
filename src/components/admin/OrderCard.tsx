@@ -30,9 +30,10 @@ interface OrderCardProps {
   settings:  Settings
   products:  Product[]
   onRefresh: () => void
+  readonly?: boolean   
 }
 
-export function OrderCard({ order, settings, products, onRefresh }: OrderCardProps) {
+export function OrderCard({ order, settings, products, onRefresh, readonly }: OrderCardProps) {
   const [expanded,  setExpanded]  = useState(false)
   const [loading,   setLoading]   = useState(false)
   const [editOpen, setEditOpen] = useState(false)
@@ -116,7 +117,7 @@ function handlePrint() {
         </div>
 
         {/* Ações rápidas */}
-        {order.status !== 'delivered' && order.status !== 'cancelled' && (
+        {!readonly && order.status !== 'delivered' && order.status !== 'cancelled' && (
           <div className="flex items-center gap-2">
             <button
               onClick={() => setEditOpen(true)}
@@ -182,25 +183,33 @@ function handlePrint() {
           {/* Itens */}
           <div className="flex flex-col gap-2">
             {order.items?.map(item => (
-              <div key={item.id}>
-                <div className="flex justify-between text-sm">
-                  <span style={{ color: 'var(--text-primary)' }}>
-                    {item.quantity}x {item.product_name}
-                  </span>
-                  <span style={{ color: 'var(--text-muted)' }}>
-                    {formatCurrency(item.unit_price * item.quantity)}
-                  </span>
-                </div>
-                {item.options?.map(opt => (
-                  <div key={opt.id} className="flex justify-between text-xs pl-3" style={{ color: 'var(--text-subtle)' }}>
-                    <span>+ {opt.option_name}</span>
-                    {opt.option_price > 0 && (
-                      <span>{formatCurrency(opt.option_price)}</span>
-                    )}
-                  </div>
-                ))}
+            <div key={item.id}>
+              <div className="flex justify-between text-sm">
+                <span style={{ color: 'var(--text-primary)' }}>
+                  {item.quantity}x {item.product_name}
+                </span>
+                <span style={{ color: 'var(--text-muted)' }}>
+                  {formatCurrency(item.unit_price * item.quantity)}
+                </span>
               </div>
-            ))}
+
+              {/* Descrição do produto — versão atual */}
+              {item.product?.description && (
+                <p className="text-xs pl-1 mt-0.5" style={{ color: 'var(--text-subtle)' }}>
+                  {item.product.description}
+                </p>
+              )}
+
+              {item.options?.map(opt => (
+                <div key={opt.id} className="flex justify-between text-xs pl-3" style={{ color: 'var(--text-subtle)' }}>
+                  <span>+ {opt.option_name}</span>
+                  {opt.option_price > 0 && (
+                    <span>{formatCurrency(opt.option_price)}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          ))}
           </div>
 
           {/* Observação */}
@@ -228,14 +237,14 @@ function handlePrint() {
           </div>
         </div>
       )}
-      <EditOrderSheet
-  order={order}
-  products={products}
-  settings={settings}
-  open={editOpen}
-  onClose={() => setEditOpen(false)}
-  onRefresh={onRefresh}
-/>
+        <EditOrderSheet
+        order={order}
+        products={products}
+        settings={settings}
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        onRefresh={onRefresh}
+      />
     </div>
   )
 }
