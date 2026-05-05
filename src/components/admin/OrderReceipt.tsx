@@ -1,36 +1,65 @@
-import { Order, Settings } from '@/types'
+import { Order, Settings, Product } from '@/types'
 import { formatDateTime, formatCurrency } from '@/lib/utils'
 import { ORDER_TYPE_LABEL, PAYMENT_METHOD_LABEL } from '@/constants'
 
 interface Props {
   order:    Order
   settings: Settings
+  products: Product[]
 }
 
 // Gera HTML completo da comanda para impressão térmica 58mm
 // Retorna string — não renderiza no DOM do sistema
-export function generateReceiptHTML({ order, settings }: Props): string {
+export function generateReceiptHTML({ order, settings, products }: Props): string {
   // Monta lista de itens
-  const itemsHTML = order.items?.map(item => {
-    const optionsHTML = item.options?.map(opt =>
-      `<div class="option">
-        + ${opt.option_name}
-        ${opt.option_price > 0 ? `<span>${formatCurrency(opt.option_price)}</span>` : ''}
-      </div>`
-    ).join('') ?? ''
+// Monta lista de itens
+const itemsHTML = (order.items && order.items.length > 0)
+  ? order.items.map(item => {
+      const itemTotal = item.unit_price * item.quantity
 
-    const itemTotal = item.unit_price * item.quantity
-    return `
-      <div class="item">
-        <div class="item-row">
-          <span>${item.quantity}x ${item.product_name}</span>
-          <span>${formatCurrency(itemTotal)}</span>
+      // Descrição do primeiro sabor
+      const description = (item as any).product?.description ?? ''
+
+      // Segundo sabor e sua descrição
+      const splitWith        = (item as any).split_with ?? ''
+      const splitProductData = splitWith
+        ? products.find(p => p.name === splitWith)
+        : null
+      const splitDescription = splitProductData?.description ?? ''
+
+      // Nome do produto na comanda
+      const productLabel = splitWith
+        ? `${item.product_name} / ${splitWith}`
+        : item.product_name
+
+      // Linha de detalhes — descrições dos dois sabores
+      const descriptionLine = [description, splitDescription]
+        .filter(Boolean)
+        .join(' | ')
+
+      // Adicionais escolhidos
+      const optionsList = item.options && item.options.length > 0
+        ? item.options.map(o => o.option_name).join(' + ')
+        : ''
+
+      const detailLine = [descriptionLine, optionsList]
+        .filter(Boolean)
+        .join(' • ')
+
+      return `
+        <div class="item">
+          <div class="item-row">
+            <span>${item.quantity}x ${productLabel}</span>
+            <span>${formatCurrency(itemTotal)}</span>
+          </div>
+          ${detailLine
+            ? `<div class="item-options">${detailLine}</div>`
+            : ''
+          }
         </div>
-        ${optionsHTML}
-      </div>
-    `
-  }).join('') ?? ''
-
+      `
+    }).join('')
+  : '<div class="item"><div class="item-row"><span>Sem itens</span></div></div>'
   // QR Code PIX via API pública
   const pixQR = settings.pix_key
     ? `<div class="center">
@@ -119,15 +148,39 @@ export function generateReceiptHTML({ order, settings }: Props): string {
     }
 
     /* ── Itens ── */
-    .item      { margin-bottom: 4px; }
-    .item-row  { display: flex; justify-content: space-between; font-weight: bold; }
-    .option    {
-      display: flex;
-      justify-content: space-between;
-      font-size: 9px;
-      color: #444;
-      padding-left: 8px;
-    }
+.item {
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px dotted #ccc;
+}
+  .item-options {
+  font-size: 9px;
+  color: #333;
+  padding-left: 4px;
+  margin-top: 2px;
+  font-weight: normal;
+  word-break: break-word;
+}
+
+    .item-row {
+  display: flex;
+  justify-content: space-between;
+  font-weight: bold;
+  font-size: 10px;
+}
+
+  .item:last-child {
+  border-bottom: none;
+}
+
+.option {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: #444;
+  padding-left: 8px;
+  margin-top: 1px;
+}
 
     /* ── Totais ── */
     .total-row {
@@ -176,6 +229,7 @@ export function generateReceiptHTML({ order, settings }: Props): string {
     @media screen {
       body { padding: 8px; background: #f5f5f5; }
     }
+      
   </style>
 </head>
 <body>
@@ -224,18 +278,33 @@ export function generateReceiptHTML({ order, settings }: Props): string {
     ? `<div class="notes">OBS: ${order.notes}</div>`
     : ''}
 
-  <!-- Totais -->
-  <div class="section">
-    ${order.delivery_fee > 0
-      ? `<div class="total-row">
-          <span>Taxa de entrega</span>
-          <span>${formatCurrency(order.delivery_fee)}</span>
-        </div>`
-      : ''}
-    <div class="total-final">
-      <span>TOTAL</span>
-      <span>${formatCurrency(order.total)}</span>
-    </div>
+<!-- Totais -->
+<div class="section">
+  ${order.delivery_fee > 0
+    ? `<div class="total-row">
+        <span>Taxa de entrega</span>
+        <span>${formatCurrency(order.delivery_fee)}</span>
+      </div>`
+    : ''}
+
+  ${order.card_fee > 0
+    ? `<div class="total-row">
+        <span>Taxa ${order.payment_method === 'credit' ? 'crédito' : 'débito'}</span>
+        <span>${formatCurrency(order.total - (order.total / (1 + order.card_fee / 100)) * (order.card_fee / 100) * (1 + order.card_fee / 100) / (order.card_fee / 100))}</span>
+      </div>`
+    : ''}
+    ${order.card_fee_amount > 0
+  ? `<div class="total-row">
+      <span>Taxa ${order.payment_method === 'credit' ? 'crédito' : 'débito'} (${order.card_fee}%)</span>
+      <span>${formatCurrency(order.card_fee_amount)}</span>
+    </div>`
+  : ''}
+
+  <div class="total-final">
+    <span>TOTAL</span>
+    <span>${formatCurrency(order.total)}</span>
+  </div>
+
     ${order.payment_method
       ? `<div class="total-row" style="margin-top:2px">
           <span>${PAYMENT_METHOD_LABEL[order.payment_method]}</span>

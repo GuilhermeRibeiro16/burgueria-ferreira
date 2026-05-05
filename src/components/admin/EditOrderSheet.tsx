@@ -76,10 +76,19 @@ export function EditOrderSheet({
     ? (deliveryZone === 'city' ? settings.delivery_fee_city : settings.delivery_fee_outside)
     : 0
 
-  const total = cartItems.reduce((sum, item) => {
-    const optTotal = item.options.reduce((s, o) => s + o.price, 0)
-    return sum + (item.price + optTotal) * item.quantity
-  }, 0) + deliveryFee
+    const cardFee = paymentMethod === 'credit'
+  ? settings.card_fee_credit
+  : paymentMethod === 'debit'
+  ? settings.card_fee_debit
+  : 0
+
+const subtotal   = cartItems.reduce((sum, item) => {
+  const optTotal = item.options.reduce((s, o) => s + o.price, 0)
+  return sum + (item.price + optTotal) * item.quantity
+}, 0) + deliveryFee
+
+const cardFeeAmt = cardFee > 0 ? Math.round(subtotal * cardFee) / 100 : 0
+const total      = subtotal + cardFeeAmt
 
   const changeAmount = paymentMethod === 'cash' && changeFor
     ? parseFloat(changeFor.replace(',', '.')) - total
@@ -95,6 +104,7 @@ export function EditOrderSheet({
       options:   options.map(o => ({ id: o.id, name: o.name, price: o.price })),
     }])
   }
+  
 
   function removeItem(key: string) {
     setCartItems(prev => prev.filter(i => i.key !== key))
@@ -116,6 +126,7 @@ export function EditOrderSheet({
         await updateOrder(order.id, {
           customer_name:  customerName.trim(),
           phone:          phone.trim(),
+            card_fee: cardFee,  
           type,
           address:        type === 'delivery' ? address.trim() : undefined,
           delivery_fee:   deliveryFee,

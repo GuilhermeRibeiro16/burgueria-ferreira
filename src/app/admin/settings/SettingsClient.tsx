@@ -8,15 +8,19 @@ import { Input }            from '@/components/ui/input'
 import { Label }            from '@/components/ui/label'
 import { Button }           from '@/components/ui/button'
 import { Separator }        from '@/components/ui/separator'
-import { Loader2, Store, Truck, Clock , Phone, Key, FileText, Signal } from 'lucide-react'
+import { Loader2, Store, Truck, Clock , Phone, Key, FileText, Signal, Receipt } from 'lucide-react'
 import { toast }            from 'sonner'
+
 
 interface Props {
   settings: Settings
 }
 
+
 // Componente auxiliar para seção com título
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  
+  
   return (
     <div
       className="rounded-xl border p-4 flex flex-col gap-4"
@@ -55,6 +59,9 @@ function Field({
 export function SettingsClient({ settings }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
+  //pagamento por cartão - taxa
+  const [cardFeeCredit, setCardFeeCredit] = useState(settings.card_fee_credit.toString())
+const [cardFeeDebit,  setCardFeeDebit]  = useState(settings.card_fee_debit.toString())
 
   // Estado dos campos
   const [storeName,            setStoreName]            = useState(settings.store_name)
@@ -82,6 +89,8 @@ export function SettingsClient({ settings }: Props) {
           pix_key:                  pixKey.trim(),
           receipt_footer:           receiptFooter.trim(),
           receipt_footer_secondary: receiptFooterSecondary.trim(),
+          card_fee_credit: cardFeeCredit, 
+          card_fee_debit:  cardFeeDebit,   
         })
         toast.success('Configurações salvas!')
         startTransition(() => router.refresh())
@@ -138,6 +147,27 @@ export function SettingsClient({ settings }: Props) {
           />
         </Field>
       </Section>
+
+      <Section title="Taxas de cartão">
+  <Field label="Taxa crédito (%)" icon={Receipt}>
+    <Input
+      type="number"
+      step="0.1"
+      value={cardFeeCredit}
+      onChange={e => setCardFeeCredit(e.target.value)}
+      placeholder="0"
+    />
+  </Field>
+  <Field label="Taxa débito (%)" icon={Receipt}>
+    <Input
+      type="number"
+      step="0.1"
+      value={cardFeeDebit}
+      onChange={e => setCardFeeDebit(e.target.value)}
+      placeholder="0"
+    />
+  </Field>
+</Section>
 
       {/* Contato */}
       <Section title="Contato e pagamento">

@@ -63,6 +63,9 @@ export interface Order {
   change_info: string | null
   created_at: string
   items?: OrderItem[]
+   card_fee:        number  // percentual ex: 3
+  card_fee_amount: number  // valor ex: 1.14
+
 }
 
 export interface OrderItem {
@@ -72,7 +75,8 @@ export interface OrderItem {
   product_name: string
   quantity:     number
   unit_price:   number
-  product?:     { description: string | null }  
+  split_with?:  string | null    
+  product?:     { description: string | null }
   options?:     OrderItemOption[]
 }
 
@@ -94,4 +98,6 @@ export interface Settings {
   pix_key: string | null
   receipt_footer: string
   receipt_footer_secondary: string | null
+  card_fee_credit:          number  
+  card_fee_debit:           number 
 }

@@ -38,11 +38,21 @@ export function formatTime(date: Date | string): string {
 
 // Retorna o início e fim do dia em UTC para filtros no banco
 export function getDayRange(date: Date): { start: string; end: string } {
-  const zoned = toZonedTime(date, TZ)
-  zoned.setHours(0, 0, 0, 0)
-  const start = new Date(zoned.getTime() + 3 * 60 * 60 * 1000)
-  zoned.setHours(23, 59, 59, 999)
-  const end = new Date(zoned.getTime() + 3 * 60 * 60 * 1000)
+  // Formata a data no fuso de Brasília
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: TZ,
+    year:     'numeric',
+    month:    '2-digit',
+    day:      '2-digit',
+  })
+
+  // Pega a data local em Brasília (YYYY-MM-DD)
+  const localDate = formatter.format(date)
+
+  // Monta início e fim do dia em Brasília e converte para UTC
+  const start = new Date(`${localDate}T00:00:00-03:00`)
+  const end   = new Date(`${localDate}T23:59:59.999-03:00`)
+
   return {
     start: start.toISOString(),
     end:   end.toISOString(),

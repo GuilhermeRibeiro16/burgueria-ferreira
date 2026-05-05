@@ -24,5 +24,7 @@ export async function getSettings(): Promise<Settings> {
     pix_key:                  map.pix_key                  ?? null,
     receipt_footer:           map.receipt_footer           ?? 'Deus é fiel, qualidade que faz rei',
     receipt_footer_secondary: map.receipt_footer_secondary ?? null,
+    card_fee_credit:          parseFloat(map.card_fee_credit ?? '0'), 
+    card_fee_debit:           parseFloat(map.card_fee_debit  ?? '0'),
   }
 }

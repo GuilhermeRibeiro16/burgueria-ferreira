@@ -2,24 +2,27 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getDayRange }  from '@/lib/utils'
 
-// Busca todos os pedidos do dia atual
 export async function getOrdersToday() {
   const supabase = createAdminClient()
   const { start, end } = getDayRange(new Date())
 
-const { data, error } = await supabase
-  .from('orders')
-  .select(`
-    *,
-    items:order_items (
+
+  const { data, error } = await supabase
+    .from('orders')
+    .select(`
       *,
-      product:products ( description ),
-      options:order_item_options (*)
-    )
-  `)
+      items:order_items (
+        *,
+        product:products ( description ),
+
+        options:order_item_options (*)
+      )
+    `)
     .gte('created_at', start)
     .lte('created_at', end)
     .order('created_at', { ascending: false })
+
+  
 
   if (error) throw error
   return data
@@ -31,12 +34,14 @@ export async function getOrdersByDate(date: Date) {
   const { start, end } = getDayRange(date)
 
 const { data, error } = await supabase
+
   .from('orders')
   .select(`
     *,
     items:order_items (
       *,
       product:products ( description ),
+
       options:order_item_options (*)
     )
   `)
@@ -50,6 +55,7 @@ const { data, error } = await supabase
 
 // Busca pedido por código
 export async function getOrderByCode(code: string) {
+  
   const supabase = createAdminClient()
 
 const { data, error } = await supabase
@@ -59,6 +65,7 @@ const { data, error } = await supabase
     items:order_items (
       *,
       product:products ( description ),
+
       options:order_item_options (*)
     )
   `)
@@ -67,4 +74,5 @@ const { data, error } = await supabase
 
   if (error) throw error
   return data
+  
 }

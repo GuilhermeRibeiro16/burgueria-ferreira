@@ -16,12 +16,14 @@ export async function createOrder(formData: {
   address?:       string
   delivery_fee:   number
   payment_method: 'cash' | 'pix' | 'credit' | 'debit'
+  card_fee?:      number
   change_info?:   string
   notes?:         string
   items: {
-    product_id:  string
-    quantity:    number
-    options:     { option_id: string }[]
+    product_id: string
+    quantity:   number
+    options:    { option_id: string }[]
+    split_with: string | null
   }[]
 }) {
   const supabase = createAdminClient()
@@ -47,17 +49,48 @@ export async function createOrder(formData: {
 
   // Calcula total no servidor
   let total = formData.delivery_fee
+
   const itemsPayload = formData.items.map(item => {
     const product     = productMap[item.product_id]
     const itemOptions = item.options.map(o => optionMap[o.option_id]).filter(Boolean)
-    const itemTotal   = calcItemTotal(
-      product.price,
+
+    // Preço base — maior valor entre os dois sabores se houver divisão
+    const splitProduct = item.split_with
+      ? products.find(p => p.name === item.split_with)
+      : null
+    const basePrice = splitProduct
+      ? Math.max(product.price, splitProduct.price)
+      : product.price
+
+    const itemTotal = calcItemTotal(
+      basePrice,
       item.quantity,
       itemOptions.map(o => o.price)
     )
+
     total += itemTotal
-    return { product, quantity: item.quantity, options: itemOptions, unit_price: product.price }
+
+    // Retorna payload com basePrice e split_with para usar no insert
+    return {
+      product,
+      quantity:   item.quantity,
+      options:    itemOptions,
+      unit_price: basePrice,          // maior valor
+      split_with: item.split_with ?? null,
+    }
   })
+
+  // Aplica taxa do cartão sobre o total (itens + entrega)
+  // DEVE ficar fora do loop — aplica uma vez sobre o total final
+  if (formData.card_fee && formData.card_fee > 0) {
+    total = total + (total * formData.card_fee / 100)
+    total = Math.round(total * 100) / 100
+  }
+
+  // Valor absoluto da taxa para exibir na comanda
+  const cardFeeAmount = formData.card_fee && formData.card_fee > 0
+    ? Math.round(total - (total / (1 + formData.card_fee / 100))) * 100 / 100
+    : 0
 
   // Gera código único
   let code = generateOrderCode()
@@ -75,16 +108,18 @@ export async function createOrder(formData: {
     .from('orders')
     .insert({
       code,
-      customer_name:  formData.customer_name,
-      phone:          formData.phone,
-      type:           formData.type,
-      address:        formData.address ?? null,
-      delivery_fee:   formData.delivery_fee,
-      payment_method: formData.payment_method,
-      change_info:    formData.change_info ?? null,
-      notes:          formData.notes ?? null,
-      status:         'received',
+      customer_name:   formData.customer_name,
+      phone:           formData.phone,
+      type:            formData.type,
+      address:         formData.address ?? null,
+      delivery_fee:    formData.delivery_fee,
+      payment_method:  formData.payment_method,
+      change_info:     formData.change_info ?? null,
+      notes:           formData.notes ?? null,
+      status:          'received',
       total,
+      card_fee:        formData.card_fee ?? 0,
+      card_fee_amount: cardFeeAmount,
     })
     .select()
     .single()
@@ -100,7 +135,8 @@ export async function createOrder(formData: {
         product_id:   item.product.id,
         product_name: item.product.name,
         quantity:     item.quantity,
-        unit_price:   item.unit_price,
+        unit_price:   item.unit_price,   // basePrice já calculado
+        split_with:   item.split_with,   // segundo sabor ou null
       })
       .select()
       .single()
@@ -163,12 +199,14 @@ export async function updateOrder(
     address?:       string
     delivery_fee:   number
     payment_method: 'cash' | 'pix' | 'credit' | 'debit'
+    card_fee?:      number
     change_info?:   string
     notes?:         string
     items: {
       product_id: string
       quantity:   number
       options:    { option_id: string }[]
+      split_with?: string | null
     }[]
   }
 ) {
@@ -193,31 +231,61 @@ export async function updateOrder(
 
   // Recalcula total
   let total = formData.delivery_fee
+
   const itemsPayload = formData.items.map(item => {
     const product     = productMap[item.product_id]
     const itemOptions = item.options.map(o => optionMap[o.option_id]).filter(Boolean)
-    const itemTotal   = calcItemTotal(
-      product.price,
+
+    // Preço base — maior valor se houver divisão
+    const splitProduct = item.split_with
+      ? products.find(p => p.name === item.split_with)
+      : null
+    const basePrice = splitProduct
+      ? Math.max(product.price, splitProduct.price)
+      : product.price
+
+    const itemTotal = calcItemTotal(
+      basePrice,
       item.quantity,
       itemOptions.map(o => o.price)
     )
+
     total += itemTotal
-    return { product, quantity: item.quantity, options: itemOptions, unit_price: product.price }
+
+    return {
+      product,
+      quantity:   item.quantity,
+      options:    itemOptions,
+      unit_price: basePrice,
+      split_with: item.split_with ?? null,
+    }
   })
+
+  // Aplica taxa do cartão depois do loop
+  if (formData.card_fee && formData.card_fee > 0) {
+    total = total + (total * formData.card_fee / 100)
+    total = Math.round(total * 100) / 100
+  }
+
+  const cardFeeAmount = formData.card_fee && formData.card_fee > 0
+    ? Math.round(total - (total / (1 + formData.card_fee / 100))) * 100 / 100
+    : 0
 
   // Atualiza dados do pedido
   const { error: orderError } = await supabase
     .from('orders')
     .update({
-      customer_name:  formData.customer_name,
-      phone:          formData.phone,
-      type:           formData.type,
-      address:        formData.address ?? null,
-      delivery_fee:   formData.delivery_fee,
-      payment_method: formData.payment_method,
-      change_info:    formData.change_info ?? null,
-      notes:          formData.notes ?? null,
+      customer_name:   formData.customer_name,
+      phone:           formData.phone,
+      type:            formData.type,
+      address:         formData.address ?? null,
+      delivery_fee:    formData.delivery_fee,
+      payment_method:  formData.payment_method,
+      change_info:     formData.change_info ?? null,
+      notes:           formData.notes ?? null,
       total,
+      card_fee:        formData.card_fee ?? 0,
+      card_fee_amount: cardFeeAmount,
     })
     .eq('id', orderId)
 
@@ -239,6 +307,7 @@ export async function updateOrder(
         product_name: item.product.name,
         quantity:     item.quantity,
         unit_price:   item.unit_price,
+        split_with:   item.split_with,
       })
       .select()
       .single()

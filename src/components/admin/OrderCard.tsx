@@ -15,15 +15,11 @@ import { EditOrderSheet } from './EditOrderSheet'
 
 
 const NEXT_STATUS: Partial<Record<OrderStatus, OrderStatus>> = {
-  received:  'preparing',
-  preparing: 'ready',
-  ready:     'delivered',
+  received: 'delivered',
 }
 
 const NEXT_STATUS_LABEL: Partial<Record<OrderStatus, string>> = {
-  received:  'Iniciar preparo',
-  preparing: 'Marcar como pronto',
-  ready:     'Confirmar entrega',
+  received: 'Marcar como pronto',
 }
 interface OrderCardProps {
   order:     Order
@@ -37,6 +33,7 @@ export function OrderCard({ order, settings, products, onRefresh, readonly }: Or
   const [expanded,  setExpanded]  = useState(false)
   const [loading,   setLoading]   = useState(false)
   const [editOpen, setEditOpen] = useState(false)
+  
 
 
   const nextStatus = NEXT_STATUS[order.status]
@@ -71,7 +68,7 @@ export function OrderCard({ order, settings, products, onRefresh, readonly }: Or
 
   // Gera e imprime o recibo
 function handlePrint() {
-  const html = generateReceiptHTML({ order, settings })
+  const html = generateReceiptHTML({ order, settings, products })
   printReceipt(html)
 }
 
@@ -117,7 +114,7 @@ function handlePrint() {
         </div>
 
         {/* Ações rápidas */}
-        {!readonly && order.status !== 'delivered' && order.status !== 'cancelled' && (
+        {order.status !== 'cancelled' && (
           <div className="flex items-center gap-2">
             <button
               onClick={() => setEditOpen(true)}
@@ -182,34 +179,59 @@ function handlePrint() {
 
           {/* Itens */}
           <div className="flex flex-col gap-2">
-            {order.items?.map(item => (
-            <div key={item.id}>
-              <div className="flex justify-between text-sm">
-                <span style={{ color: 'var(--text-primary)' }}>
-                  {item.quantity}x {item.product_name}
-                </span>
-                <span style={{ color: 'var(--text-muted)' }}>
-                  {formatCurrency(item.unit_price * item.quantity)}
-                </span>
-              </div>
+{order.items?.map(item => {
+  // Busca descrição do segundo sabor nos produtos
+  const splitProduct = item.split_with
+    ? products.find(p => p.name === item.split_with)
+    : null
 
-              {/* Descrição do produto — versão atual */}
-              {item.product?.description && (
-                <p className="text-xs pl-1 mt-0.5" style={{ color: 'var(--text-subtle)' }}>
-                  {item.product.description}
-                </p>
-              )}
+  return (
+    <div key={item.id}>
+      {/* Nome + segundo sabor */}
+      <div className="flex justify-between text-sm">
+        <span style={{ color: 'var(--text-primary)' }}>
+          {item.quantity}x {item.product_name}
+          {item.split_with && (
+            <span style={{ color: 'var(--brand)' }}>
+              {' '}/ {item.split_with}
+            </span>
+          )}
+        </span>
+        <span style={{ color: 'var(--text-muted)' }}>
+          {formatCurrency(item.unit_price * item.quantity)}
+        </span>
+      </div>
 
-              {item.options?.map(opt => (
-                <div key={opt.id} className="flex justify-between text-xs pl-3" style={{ color: 'var(--text-subtle)' }}>
-                  <span>+ {opt.option_name}</span>
-                  {opt.option_price > 0 && (
-                    <span>{formatCurrency(opt.option_price)}</span>
-                  )}
-                </div>
-              ))}
-            </div>
-          ))}
+      {/* Descrição do primeiro sabor */}
+      {item.product?.description && (
+        <p className="text-xs pl-1 mt-0.5" style={{ color: 'var(--text-subtle)' }}>
+          {item.product.description}
+        </p>
+      )}
+
+      {/* Descrição do segundo sabor */}
+      {splitProduct?.description && (
+        <p className="text-xs pl-1 mt-0.5" style={{ color: 'var(--text-subtle)' }}>
+          {splitProduct.description}
+        </p>
+      )}
+
+      {/* Adicionais */}
+      {item.options?.map(opt => (
+        <div
+          key={opt.id}
+          className="flex justify-between text-xs pl-3"
+          style={{ color: 'var(--text-subtle)' }}
+        >
+          <span>+ {opt.option_name}</span>
+          {opt.option_price > 0 && (
+            <span>{formatCurrency(opt.option_price)}</span>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+})}
           </div>
 
           {/* Observação */}

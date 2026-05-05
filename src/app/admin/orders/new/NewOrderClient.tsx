@@ -40,12 +40,19 @@ export function NewOrderClient({ products, settings }: Props) {
   const [paymentMethod,  setPaymentMethod]  = useState<'cash' | 'pix' | 'credit' | 'debit'>('cash')
   const [changeFor,      setChangeFor]      = useState('')  // valor que o cliente vai pagar
   const [notes,          setNotes]          = useState('')
+const cardFee = paymentMethod === 'credit'
+  ? settings.card_fee_credit
+  : paymentMethod === 'debit'
+  ? settings.card_fee_debit
+  : 0
 
   const deliveryFee = type === 'delivery'
     ? (deliveryZone === 'city' ? settings.delivery_fee_city : settings.delivery_fee_outside)
     : 0
 
-  const total = cart.getTotal(deliveryFee)
+const subtotal    = cart.getTotal(deliveryFee)
+const cardFeeAmt  = cardFee > 0 ? Math.round(subtotal * cardFee) / 100 : 0
+const total       = subtotal + cardFeeAmt
 
   // Calcula troco
   const changeAmount = paymentMethod === 'cash' && changeFor
@@ -75,7 +82,9 @@ export function NewOrderClient({ products, settings }: Props) {
             product_id: item.product.id,
             quantity:   item.quantity,
             options:    item.selectedOptions.map(o => ({ option_id: o.id })),
+            split_with: item.splitWith?.name ?? null,  // ← adicionar
           })),
+          card_fee: cardFeeAmt,
         })
 
         toast.success(`Pedido ${result.code} criado!`)
@@ -195,24 +204,33 @@ export function NewOrderClient({ products, settings }: Props) {
           <>
             <Separator style={{ backgroundColor: 'var(--border)' }} />
             <div className="flex flex-col gap-3">
-              {cart.items.map(item => {
-                const optionsTotal = item.selectedOptions.reduce((s, o) => s + o.price, 0)
-                const itemTotal    = (item.product.price + optionsTotal) * item.quantity
-                return (
-                  <div key={item.key} className="flex items-start justify-between gap-2">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                        {item.product.name}
-                      </p>
-                      {item.selectedOptions.map(o => (
-                        <p key={o.id} className="text-xs" style={{ color: 'var(--text-subtle)' }}>
-                          + {o.name} {o.price > 0 ? formatCurrency(o.price) : ''}
-                        </p>
-                      ))}
-                      <p className="text-xs mt-0.5" style={{ color: 'var(--brand)' }}>
-                        {formatCurrency(itemTotal)}
-                      </p>
-                    </div>
+{cart.items.map(item => {
+  const basePrice    = item.splitWith
+    ? Math.max(item.product.price, item.splitWith.price)
+    : item.product.price
+  const optionsTotal = item.selectedOptions.reduce((s, o) => s + o.price, 0)
+  const itemTotal    = (basePrice + optionsTotal) * item.quantity
+
+  return (
+    <div key={item.key} className="flex items-start justify-between gap-2">
+      <div className="flex-1">
+        <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+          {item.product.name}
+          {item.splitWith && (
+            <span style={{ color: 'var(--text-muted)' }}>
+              {' '}/ {item.splitWith.name}
+            </span>
+          )}
+        </p>
+        {item.selectedOptions.map(o => (
+          <p key={o.id} className="text-xs" style={{ color: 'var(--text-subtle)' }}>
+            + {o.name} {o.price > 0 ? formatCurrency(o.price) : ''}
+          </p>
+        ))}
+        <p className="text-xs mt-0.5" style={{ color: 'var(--brand)' }}>
+          {formatCurrency(itemTotal)}
+        </p>
+      </div>
 
                     {/* Controle de quantidade */}
                     <div className="flex items-center gap-2">
@@ -294,6 +312,17 @@ export function NewOrderClient({ products, settings }: Props) {
                 Valor insuficiente
               </p>
             )}
+          </div>
+        )}
+        {/* Taxa do cartão — só aparece para crédito e débito */}
+        {cardFee > 0 && (
+          <div className="flex justify-between items-center">
+            <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
+              Taxa {paymentMethod === 'credit' ? 'crédito' : 'débito'} ({cardFee}%)
+            </span>
+            <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
+              {formatCurrency(cardFeeAmt)}
+            </span>
           </div>
         )}
 
