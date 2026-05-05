@@ -173,7 +173,7 @@ export function DashboardClient({ initialData, initialPeriod }: Props) {
                   fontSize:        '12px',
                   color:           'oklch(95% 0.005 240)',
                 }}
-                formatter={(value: number) => [formatCurrency(value), 'Faturamento']}
+                  formatter={(value) => [formatCurrency(Number(value ?? 0)), 'Faturamento']}
               />
               <Area
                 type="monotone"
