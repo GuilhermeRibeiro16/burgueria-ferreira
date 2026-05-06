@@ -234,13 +234,22 @@ const itemsHTML = (order.items && order.items.length > 0)
 </head>
 <body>
 
-  <!-- Nome da loja -->
-  <p class="store-name">${settings.store_name}</p>
+ <!-- Logo ou nome da loja -->
+${settings.logo_url
+  ? `<div class="center" style="margin-bottom: 4px;">
+      <img
+        src="${settings.logo_url}"
+        alt="${settings.store_name}"
+        style="max-width: 120px; max-height: 60px; object-fit: contain;"
+      />
+    </div>`
+  : `<p class="store-name">${settings.store_name}</p>`
+}
   ${settings.instagram
     ? `<p class="store-info">@${settings.instagram}</p>`
     : ''}
   ${settings.whatsapp
-    ? `<p class="store-info">📱 ${settings.whatsapp}</p>`
+    ? `<p class="store-info"> ${settings.whatsapp}</p>`
     : ''}
 
   <div class="divider"></div>

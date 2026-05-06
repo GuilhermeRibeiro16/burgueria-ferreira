@@ -100,4 +100,5 @@ export interface Settings {
   receipt_footer_secondary: string | null
   card_fee_credit:          number  
   card_fee_debit:           number 
+  logo_url: string | null
 }

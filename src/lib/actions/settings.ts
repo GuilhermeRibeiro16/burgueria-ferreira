@@ -18,3 +18,33 @@ export async function updateSettings(settings: Record<string, string>) {
   revalidatePath('/admin/settings')
   return { success: true }
 }
+
+// Upload de logo da loja
+export async function uploadStoreLogo(formData: FormData): Promise<string> {
+  const supabase = createAdminClient()
+  const file     = formData.get('file') as File
+
+  if (!file) throw new Error('Arquivo não encontrado')
+
+  const ext      = file.name.split('.').pop()
+  const filename = `logo-${Date.now()}.${ext}`
+
+  // Remove logo antiga se existir
+  await supabase.storage.from('store').remove([filename])
+
+  const { error } = await supabase.storage
+    .from('store')
+    .upload(filename, file, { contentType: file.type, upsert: true })
+
+  if (error) throw error
+
+  const { data } = supabase.storage.from('store').getPublicUrl(filename)
+
+  // Salva URL no banco
+  await supabase
+    .from('settings')
+    .upsert({ key: 'logo_url', value: data.publicUrl }, { onConflict: 'key' })
+
+  revalidatePath('/admin/settings')
+  return data.publicUrl
+}

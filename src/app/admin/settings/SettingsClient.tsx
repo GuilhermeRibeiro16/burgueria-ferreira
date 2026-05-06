@@ -3,18 +3,21 @@
 import { useState, useTransition } from 'react'
 import { useRouter }        from 'next/navigation'
 import { Settings }         from '@/types'
-import { updateSettings }   from '@/lib/actions/settings'
+import { updateSettings, uploadStoreLogo } from '@/lib/actions/settings'
 import { Input }            from '@/components/ui/input'
 import { Label }            from '@/components/ui/label'
 import { Button }           from '@/components/ui/button'
 import { Separator }        from '@/components/ui/separator'
-import { Loader2, Store, Truck, Clock , Phone, Key, FileText, Signal, Receipt } from 'lucide-react'
+import { ImagePlus, Loader2, Store, Truck, Clock , Phone, Key, FileText, Signal, Receipt } from 'lucide-react'
 import { toast }            from 'sonner'
+import Image from 'next/image'
+import { useRef } from 'react'
 
 
 interface Props {
   settings: Settings
 }
+
 
 
 // Componente auxiliar para seção com título
@@ -62,6 +65,10 @@ export function SettingsClient({ settings }: Props) {
   //pagamento por cartão - taxa
   const [cardFeeCredit, setCardFeeCredit] = useState(settings.card_fee_credit.toString())
 const [cardFeeDebit,  setCardFeeDebit]  = useState(settings.card_fee_debit.toString())
+// Upload de logo
+const logoRef = useRef<HTMLInputElement>(null)
+const [logoUrl,      setLogoUrl]      = useState(settings.logo_url ?? '')
+const [logoUploading, setLogoUploading] = useState(false)
 
   // Estado dos campos
   const [storeName,            setStoreName]            = useState(settings.store_name)
@@ -75,6 +82,25 @@ const [cardFeeDebit,  setCardFeeDebit]  = useState(settings.card_fee_debit.toStr
   const [receiptFooterSecondary, setReceiptFooterSecondary] = useState(
     settings.receipt_footer_secondary ?? ''
   )
+
+
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  const file = e.target.files?.[0]
+  if (!file) return
+
+  setLogoUploading(true)
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    const url = await uploadStoreLogo(formData)
+    setLogoUrl(url)
+    toast.success('Logo atualizada!')
+  } catch {
+    toast.error('Erro ao fazer upload da logo')
+  } finally {
+    setLogoUploading(false)
+  }
+}
 
   async function handleSave() {
     startTransition(async () => {
@@ -90,7 +116,8 @@ const [cardFeeDebit,  setCardFeeDebit]  = useState(settings.card_fee_debit.toStr
           receipt_footer:           receiptFooter.trim(),
           receipt_footer_secondary: receiptFooterSecondary.trim(),
           card_fee_credit: cardFeeCredit, 
-          card_fee_debit:  cardFeeDebit,   
+          card_fee_debit:  cardFeeDebit, 
+      
         })
         toast.success('Configurações salvas!')
         startTransition(() => router.refresh())
@@ -107,6 +134,51 @@ const [cardFeeDebit,  setCardFeeDebit]  = useState(settings.card_fee_debit.toStr
       <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
         Configurações
       </h1>
+
+
+<Section title="Logo da loja">
+  <div
+    className="relative w-full h-36 rounded-xl border-2 border-dashed flex items-center justify-center cursor-pointer overflow-hidden"
+    style={{ borderColor: 'var(--border-strong)' }}
+    onClick={() => logoRef.current?.click()}
+  >
+    {logoUrl ? (
+      <Image
+        src={logoUrl}
+        alt="Logo da loja"
+        fill
+        className="object-contain p-4"
+      />
+    ) : (
+      <div
+        className="flex flex-col items-center gap-2"
+        style={{ color: 'var(--text-subtle)' }}
+      >
+        {logoUploading
+          ? <Loader2 size={24} className="animate-spin" />
+          : <><ImagePlus size={24} /><span className="text-xs">Clique para adicionar logo</span></>
+        }
+      </div>
+    )}
+  </div>
+  <input
+    ref={logoRef}
+    type="file"
+    accept="image/jpeg,image/png,image/webp"
+    className="hidden"
+    onChange={handleLogoUpload}
+  />
+  {logoUrl && (
+    <button
+      className="text-xs self-start"
+      style={{ color: 'var(--text-muted)' }}
+      onClick={() => setLogoUrl('')}
+    >
+      Remover logo
+    </button>
+  )}
+</Section>
+
 
       {/* Loja */}
       <Section title="Loja">

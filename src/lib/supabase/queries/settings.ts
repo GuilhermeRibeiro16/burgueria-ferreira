@@ -26,5 +26,6 @@ export async function getSettings(): Promise<Settings> {
     receipt_footer_secondary: map.receipt_footer_secondary ?? null,
     card_fee_credit:          parseFloat(map.card_fee_credit ?? '0'), 
     card_fee_debit:           parseFloat(map.card_fee_debit  ?? '0'),
+    logo_url: map.logo_url || null,
   }
 }
