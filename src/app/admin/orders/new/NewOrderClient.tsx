@@ -61,7 +61,9 @@ const total       = subtotal + cardFeeAmt
 
   async function handleSubmit() {
     if (!customerName.trim()) return toast.error('Informe o nome do cliente')
-    if (!phone.trim())         return toast.error('Informe o telefone')
+     {/* telefone é opcional, então não valida
+      if (!phone.trim())         return toast.error('Informe o telefone')
+      */}
     if (type === 'delivery' && !address.trim()) return toast.error('Informe o endereço')
     if (cart.items.length === 0) return toast.error('Adicione pelo menos um produto')
 
@@ -69,7 +71,7 @@ const total       = subtotal + cardFeeAmt
       try {
         const result = await createOrder({
           customer_name:  customerName.trim(),
-          phone:          phone.trim(),
+          phone:          '',
           type,
           address:        type === 'delivery' ? address.trim() : undefined,
           delivery_fee:   deliveryFee,
@@ -118,15 +120,16 @@ const total       = subtotal + cardFeeAmt
           Cliente
         </p>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1.5">
-            <Label style={{ color: 'var(--text-muted)' }}>Nome</Label>
+        <div className="flex flex-col gap-1.5">
+
+            <Label style={{ color: 'var(--text-muted)' }}>Nome do Cliente</Label>
             <Input
               value={customerName}
               onChange={e => setCustomerName(e.target.value)}
               placeholder="João Silva"
             />
-          </div>
+
+          {/* 
           <div className="flex flex-col gap-1.5">
             <Label style={{ color: 'var(--text-muted)' }}>Telefone</Label>
             <Input
@@ -135,6 +138,7 @@ const total       = subtotal + cardFeeAmt
               placeholder="(82) 99999-9999"
             />
           </div>
+          */}
         </div>
 
         {/* Tipo */}

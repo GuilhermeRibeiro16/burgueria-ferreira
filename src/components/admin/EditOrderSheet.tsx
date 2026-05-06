@@ -117,7 +117,9 @@ const total      = subtotal + cardFeeAmt
 
   async function handleSave() {
     if (!customerName.trim()) return toast.error('Informe o nome do cliente')
-    if (!phone.trim())         return toast.error('Informe o telefone')
+     {/* telefone é opcional, então não valida
+      if (!phone.trim())         return toast.error('Informe o telefone')
+      */}
     if (type === 'delivery' && !address.trim()) return toast.error('Informe o endereço')
     if (cartItems.length === 0) return toast.error('Adicione pelo menos um produto')
 
@@ -125,8 +127,8 @@ const total      = subtotal + cardFeeAmt
       try {
         await updateOrder(order.id, {
           customer_name:  customerName.trim(),
-          phone:          phone.trim(),
-            card_fee: cardFee,  
+          phone:          '',
+          card_fee: cardFee,  
           type,
           address:        type === 'delivery' ? address.trim() : undefined,
           delivery_fee:   deliveryFee,
@@ -174,15 +176,17 @@ const total      = subtotal + cardFeeAmt
               Cliente
             </p>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="">
               <div className="flex flex-col gap-1.5">
                 <Label style={{ color: 'var(--text-muted)' }}>Nome</Label>
                 <Input value={customerName} onChange={e => setCustomerName(e.target.value)} />
               </div>
+              {/*
               <div className="flex flex-col gap-1.5">
                 <Label style={{ color: 'var(--text-muted)' }}>Telefone</Label>
                 <Input value={phone} onChange={e => setPhone(e.target.value)} />
               </div>
+              */}
             </div>
 
             {/* Tipo */}
