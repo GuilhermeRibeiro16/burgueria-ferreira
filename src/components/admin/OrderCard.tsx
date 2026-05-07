@@ -67,9 +67,8 @@ export function OrderCard({ order, settings, products, onRefresh, readonly }: Or
   }
 
   // Gera e imprime o recibo
-function handlePrint() {
-  const html = generateReceiptHTML({ order, settings, products })
-  printReceipt(html)
+async function handlePrint() {
+  await printReceipt({ order, settings, products })
 }
 
   return (
