@@ -92,7 +92,7 @@ function row(left: string, right: string, size = 9, bold = true) {
   divider()
 
   // ── Código e data ─────────────────────────────────────────
-  text(order.code, 0, 'center', 16, true)
+  text(order.code, 0, 'center', 14, true)
   newLine(5)
   text(formatDateTime(order.created_at), 0, 'center', 8)
   newLine(4)
@@ -238,22 +238,19 @@ nameLines.forEach((line: string, i: number) => {
   divider()
 
   // ── QR Code PIX ───────────────────────────────────────────
-  if (settings.pix_key) {
-    text('PIX', 0, 'center', 8, true)
-    newLine(3)
-    try {
-      const qrUrl  = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(settings.pix_key)}`
-      const qrImg  = await loadImage(qrUrl)
-      const qrSize = 24
-      doc.addImage(qrImg.data, 'PNG', (PAGE_WIDTH - qrSize) / 2, y, qrSize, qrSize)
-      y += qrSize + 2
-    } catch {
-      text(settings.pix_key, 0, 'center', 6)
-      newLine(4)
-    }
-    divider()
-  }
-
+if (settings.pix_key) {
+  text('PIX', 0, 'center', 8, true)
+  newLine(3.5)
+  const pixLines = doc.splitTextToSize(settings.pix_key, LINE_WIDTH)
+  doc.setFontSize(8)
+  doc.setFont('courier', 'bold')
+  pixLines.forEach((line: string) => {
+    doc.text(line, PAGE_WIDTH / 2, y, { align: 'center' })
+    y += 3.5
+  })
+  newLine(1)
+  divider()
+}
   // ── Rodapé ────────────────────────────────────────────────
 if (settings.receipt_footer) {
   const footerLines = doc.splitTextToSize(settings.receipt_footer, LINE_WIDTH)
@@ -268,7 +265,7 @@ if (settings.receipt_footer) {
 if (settings.receipt_footer_secondary) {
   const footer2Lines = doc.splitTextToSize(settings.receipt_footer_secondary, LINE_WIDTH)
   doc.setFontSize(8)
-  doc.setFont('courier', 'normal')
+  doc.setFont('courier', 'bold')
   footer2Lines.forEach((line: string) => {
     doc.text(line, PAGE_WIDTH / 2, y, { align: 'center' })
     y += 3.5
