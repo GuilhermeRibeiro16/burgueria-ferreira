@@ -68,7 +68,7 @@ export function OrderCard({ order, settings, products, onRefresh, readonly }: Or
 
   // Gera e imprime o recibo
 async function handlePrint() {
-  await printReceipt({ order, settings, products })
+  await printReceipt({ order, settings, products, mode: 'txt' })
 }
 
   return (
