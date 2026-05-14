@@ -216,18 +216,18 @@ async function handlePrint() {
       )}
 
       {/* Adicionais */}
-      {item.options?.map(opt => (
-        <div
-          key={opt.id}
-          className="flex justify-between text-xs pl-3"
-          style={{ color: 'var(--text-subtle)' }}
-        >
-          <span>+ {opt.option_name}</span>
-          {opt.option_price > 0 && (
-            <span>{formatCurrency(opt.option_price)}</span>
-          )}
-        </div>
-      ))}
+{item.options?.map(opt => {
+  const qty   = (opt as any).quantity ?? 1
+  const total = opt.option_price * qty
+  return (
+    <div key={opt.id} className="flex justify-between text-xs pl-3" style={{ color: 'var(--text-subtle)' }}>
+      <span>+ {qty > 1 ? `${qty}x ` : ''}{opt.option_name}</span>
+      {opt.option_price > 0 && (
+        <span>{formatCurrency(total)}</span>
+      )}
+    </div>
+  )
+})}
     </div>
   )
 })}

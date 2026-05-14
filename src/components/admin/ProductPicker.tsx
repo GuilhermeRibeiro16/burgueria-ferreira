@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Search, Plus, Check, Split } from 'lucide-react'
+import { Search, Plus, Check, Split, Minus } from 'lucide-react'
 import { Product, ProductOption } from '@/types'
 import { Input }  from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -9,15 +9,17 @@ interface Props {
   products: Product[]
   onAdd:    (
     product:   Product,
-    options:   ProductOption[],
+    options:   { option: ProductOption; quantity: number }[],  // ← com quantidade
     splitWith: Product | null
   ) => void
 }
-
 export function ProductPicker({ products, onAdd }: Props) {
   const [search,          setSearch]          = useState('')
   const [selected,        setSelected]        = useState<Product | null>(null)
-  const [selectedOptions, setSelectedOptions] = useState<ProductOption[]>([])
+  const [selectedOptions, setSelectedOptions] = useState<{
+    option:   ProductOption
+    quantity: number
+  }[]>([])
   const [splitting,       setSplitting]       = useState(false)
   const [splitProduct,    setSplitProduct]    = useState<Product | null>(null)
   const [splitSearch,     setSplitSearch]     = useState('')
@@ -46,44 +48,62 @@ export function ProductPicker({ products, onAdd }: Props) {
     setSplitSearch('')
   }
 
-  function toggleOption(
-    option:    ProductOption,
-    groupType: 'radio' | 'checkbox',
-    groupId:   string
-  ) {
-    if (groupType === 'radio') {
-      setSelectedOptions(prev => [
-        ...prev.filter(o => {
-          const group = selected?.option_groups?.find(
-            g => g.options?.some(opt => opt.id === o.id)
-          )
-          return group?.id !== groupId
-        }),
-        option,
-      ])
+function toggleOption(
+  option:    ProductOption,
+  groupType: 'radio' | 'checkbox',
+  groupId:   string
+) {
+  if (groupType === 'radio') {
+    // Radio sempre quantity 1 — substitui opção do grupo
+    setSelectedOptions(prev => [
+      ...prev.filter(o => {
+        const group = selected?.option_groups?.find(
+          g => g.options?.some(opt => opt.id === o.option.id)
+        )
+        return group?.id !== groupId
+      }),
+      { option, quantity: 1 },
+    ])
+  } else {
+ // Checkbox — toggle
+    const exists = selectedOptions.find(o => o.option.id === option.id)
+    if (exists) {
+      setSelectedOptions(prev => prev.filter(o => o.option.id !== option.id))
     } else {
-      setSelectedOptions(prev =>
-        prev.some(o => o.id === option.id)
-          ? prev.filter(o => o.id !== option.id)
-          : [...prev, option]
-      )
+      setSelectedOptions(prev => [...prev, { option, quantity: 1 }])
     }
   }
+}
 
-  function handleAdd() {
-    if (!selected) return
-    onAdd(selected, selectedOptions, splitProduct)
-    setSelected(null)
-    setSelectedOptions([])
-    setSplitting(false)
-    setSplitProduct(null)
-    setSearch('')
-    setSplitSearch('')
+function updateOptionQuantity(optionId: string, quantity: number) {
+  if (quantity < 1) {
+    // Remove se chegar a 0
+    setSelectedOptions(prev => prev.filter(o => o.option.id !== optionId))
+    return
   }
+  setSelectedOptions(prev => prev.map(o =>
+    o.option.id === optionId ? { ...o, quantity } : o
+  ))
+  
+}
 
-  function isSelected(optionId: string) {
-    return selectedOptions.some(o => o.id === optionId)
-  }
+
+function handleAdd() {
+  if (!selected) return
+  onAdd(selected, selectedOptions, splitProduct)  // ← passa selectedOptions completo
+  setSelected(null)
+  setSelectedOptions([])
+  setSplitting(false)
+  setSplitProduct(null)
+  setSearch('')
+  setSplitSearch('')
+}
+
+function isSelected(optionId: string) {
+  return selectedOptions.some(o => o.option.id === optionId)
+}
+
+
 
   return (
     <div className="flex flex-col gap-3">
@@ -247,44 +267,72 @@ export function ProductPicker({ products, onAdd }: Props) {
                   : ''}
               </p>
 
-              {group.options?.filter(o => o.available).map(option => {
-                const active = isSelected(option.id)
-                return (
-                  <button
-                    key={option.id}
-                    onClick={() => toggleOption(
-                      option,
-                      group.type as 'radio' | 'checkbox',
-                      group.id
-                    )}
-                    className="flex items-center justify-between px-3 py-2 rounded-lg transition-colors"
-                    style={{
-                      backgroundColor: active ? 'var(--brand-subtle)' : 'var(--bg-muted)',
-                      border: `1px solid ${active ? 'var(--brand)' : 'transparent'}`,
-                    }}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0"
-                        style={{
-                          borderColor:     active ? 'var(--brand)' : 'var(--border-strong)',
-                          backgroundColor: active ? 'var(--brand)' : 'transparent',
-                        }}
-                      >
-                        {active && <Check size={10} color="white" />}
-                      </div>
-                      <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
-                        {option.name}
-                      </span>
-                    </div>
-                    {option.price > 0 && (
-                      <span className="text-xs" style={{ color: 'var(--brand)' }}>
-                        +{formatCurrency(option.price)}
-                      </span>
-                    )}
-                  </button>
-                )
-              })}
+{group.options?.filter(o => o.available).map(option => {
+  const selected_opt = selectedOptions.find(o => o.option.id === option.id)
+  const active       = !!selected_opt
+  const qty          = selected_opt?.quantity ?? 0
+
+  return (
+    <div key={option.id}>
+      <button
+        onClick={() => toggleOption(option, group.type as 'radio' | 'checkbox', group.id)}
+        className="flex items-center justify-between px-3 py-2 rounded-lg w-full transition-colors"
+        style={{
+          backgroundColor: active ? 'var(--brand-subtle)' : 'var(--bg-muted)',
+          border: `1px solid ${active ? 'var(--brand)' : 'transparent'}`,
+        }}
+      >
+        <div className="flex items-center gap-2">
+          <div
+            className="w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0"
+            style={{
+              borderColor:     active ? 'var(--brand)' : 'var(--border-strong)',
+              backgroundColor: active ? 'var(--brand)' : 'transparent',
+            }}
+          >
+            {active && <Check size={10} color="white" />}
+          </div>
+          <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
+            {option.name}
+          </span>
+        </div>
+        {option.price > 0 && (
+          <span className="text-xs" style={{ color: 'var(--brand)' }}>
+            +{formatCurrency(option.price)}
+          </span>
+        )}
+      </button>
+
+      {/* Controle de quantidade — só para checkbox selecionado */}
+      {active && group.type === 'checkbox' && (
+        <div className="flex items-center gap-2 px-3 py-1.5 mt-1 rounded-lg"
+          style={{ backgroundColor: 'var(--bg-muted)' }}
+        >
+          <span className="text-xs flex-1" style={{ color: 'var(--text-muted)' }}>
+            Quantidade
+          </span>
+          <button
+            onClick={() => updateOptionQuantity(option.id, qty - 1)}
+            className="w-6 h-6 rounded flex items-center justify-center"
+            style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)' }}
+          >
+            <Minus size={11} />
+          </button>
+          <span className="text-sm w-4 text-center" style={{ color: 'var(--text-primary)' }}>
+            {qty}
+          </span>
+          <button
+            onClick={() => updateOptionQuantity(option.id, qty + 1)}
+            className="w-6 h-6 rounded flex items-center justify-center"
+            style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)' }}
+          >
+            <Plus size={11} />
+          </button>
+        </div>
+      )}
+    </div>
+  )
+})}
             </div>
           ))}
 

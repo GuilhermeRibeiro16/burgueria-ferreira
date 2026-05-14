@@ -122,11 +122,15 @@ export function generateReceiptTXT({
     }
 
     // Adicionais
-    item.options?.forEach(opt => {
-      const optLine  = `  + ${opt.option_name}`
-      const optPrice = opt.option_price > 0 ? formatCurrency(opt.option_price) : ''
-      add(optPrice ? cols(optLine, optPrice) : optLine)
-    })
+item.options?.forEach(opt => {
+  const qty      = (opt as any).quantity ?? 1
+  const prefix   = qty > 1 ? `${qty}x ` : ''
+  const optLine  = `  + ${prefix}${opt.option_name}`
+  const optPrice = opt.option_price > 0
+    ? formatCurrency(opt.option_price * qty)
+    : ''
+  add(optPrice ? cols(optLine, optPrice) : optLine)
+})
 
     add() // linha em branco entre itens
   })

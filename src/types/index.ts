@@ -85,6 +85,7 @@ export interface OrderItemOption {
   order_item_id: string
   option_name: string    // salvo no momento do pedido
   option_price: number   // salvo no momento do pedido
+  quantity:     number  // ← adicionar
 }
 
 // ---------- Configurações ----------

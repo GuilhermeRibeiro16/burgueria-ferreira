@@ -4,32 +4,44 @@
 import { useState } from 'react'
 import { Product, ProductOption } from '@/types'
 
+export interface CartItemOption {
+  id:       string
+  name:     string
+  price:    number
+  quantity: number  // ← adicionar
+}
+
 export interface CartItem {
   key:             string
   product:         Product
   quantity:        number
-  selectedOptions: ProductOption[]
-  splitWith:       Product | null   
+  selectedOptions: CartItemOption[]
+  splitWith:       Product | null
 }
 
 //adiciona item ao carrinho, agora com suporte para dividir o pedido com outro produto
 export function useOrderCart() {
   const [items, setItems] = useState<CartItem[]>([])
 
-  function addItem(
-    product:   Product,
-    options:   ProductOption[],
-    splitWith: Product | null  // ← adicionar
-  ) {
-    const key = `${product.id}-${Date.now()}`
-    setItems(prev => [...prev, {
-      key,
-      product,
-      quantity: 1,
-      selectedOptions: options,
-      splitWith,                // ← adicionar
-    }])
-  }
+function addItem(
+  product:   Product,
+  options:   { option: ProductOption; quantity: number }[],
+  splitWith: Product | null
+) {
+  const key = `${product.id}-${Date.now()}`
+  setItems(prev => [...prev, {
+    key,
+    product,
+    quantity: 1,
+    selectedOptions: options.map(o => ({
+      id:       o.option.id,
+      name:     o.option.name,
+      price:    o.option.price,
+      quantity: o.quantity,
+    })),
+    splitWith,
+  }])
+}
 
 
   // Remove item do carrinho
@@ -44,17 +56,19 @@ export function useOrderCart() {
   }
 
   // Calcula total do carrinho
-  function getTotal(deliveryFee: number): number {
-    const itemsTotal = items.reduce((sum, item) => {
-      const optionsTotal = item.selectedOptions.reduce((s, o) => s + o.price, 0)
-      // Preço = maior valor entre os dois sabores
-      const basePrice = item.splitWith
-        ? Math.max(item.product.price, item.splitWith.price)
-        : item.product.price
-      return sum + (basePrice + optionsTotal) * item.quantity
-    }, 0)
-    return itemsTotal + deliveryFee
-  }
+function getTotal(deliveryFee: number): number {
+  const itemsTotal = items.reduce((sum, item) => {
+    // Cada adicional multiplicado pela sua quantidade
+    const optionsTotal = item.selectedOptions.reduce(
+      (s, o) => s + (o.price * o.quantity), 0
+    )
+    const basePrice = item.splitWith
+      ? Math.max(item.product.price, item.splitWith.price)
+      : item.product.price
+    return sum + (basePrice + optionsTotal) * item.quantity
+  }, 0)
+  return itemsTotal + deliveryFee
+}
 
   // resto permanece igual...
   return { items, addItem, removeItem, updateQuantity, getTotal }

@@ -19,12 +19,12 @@ export async function createOrder(formData: {
   card_fee?:      number
   change_info?:   string
   notes?:         string
-  items: {
-    product_id: string
-    quantity:   number
-    options:    { option_id: string }[]
-    split_with: string | null
-  }[]
+items: {
+  product_id: string
+  quantity:   number
+  options:    { option_id: string; quantity: number }[]  // ← adicionar quantity
+  split_with: string | null
+}[]
 }) {
   const supabase = createAdminClient()
 
@@ -52,7 +52,15 @@ export async function createOrder(formData: {
 
   const itemsPayload = formData.items.map(item => {
     const product     = productMap[item.product_id]
-    const itemOptions = item.options.map(o => optionMap[o.option_id]).filter(Boolean)
+    const itemOptions = item.options.map(o => ({
+  ...optionMap[o.option_id],
+  quantity: o.quantity,  // ← preserva quantidade
+})).filter(Boolean)
+// No calcItemTotal considera quantidade dos adicionais
+const optionsTotal = itemOptions.reduce(
+  (s: number, o: any) => s + (o.price * o.quantity), 0
+)
+
 
     // Preço base — maior valor entre os dois sabores se houver divisão
     const splitProduct = item.split_with
@@ -62,13 +70,10 @@ export async function createOrder(formData: {
       ? Math.max(product.price, splitProduct.price)
       : product.price
 
-    const itemTotal = calcItemTotal(
-      basePrice,
-      item.quantity,
-      itemOptions.map(o => o.price)
-    )
+const itemTotal = (basePrice + optionsTotal) * item.quantity
+total += itemTotal
 
-    total += itemTotal
+
 
     // Retorna payload com basePrice e split_with para usar no insert
     return {
@@ -142,13 +147,14 @@ export async function createOrder(formData: {
       .single()
 
     if (item.options.length && orderItem) {
-      await supabase.from('order_item_options').insert(
-        item.options.map(o => ({
-          order_item_id: orderItem.id,
-          option_name:   o.name,
-          option_price:  o.price,
-        }))
-      )
+await supabase.from('order_item_options').insert(
+  item.options.map(o => ({
+    order_item_id: orderItem.id,
+    option_name:   o.name,
+    option_price:  o.price,
+    quantity:      o.quantity,  // ← salva quantidade
+  }))
+)
     }
   }
 
@@ -202,12 +208,12 @@ export async function updateOrder(
     card_fee?:      number
     change_info?:   string
     notes?:         string
-    items: {
-      product_id: string
-      quantity:   number
-      options:    { option_id: string }[]
-      split_with?: string | null
-    }[]
+items: {
+  product_id: string
+  quantity:   number
+  options:    { option_id: string; quantity: number }[]  // ← adicionar quantity
+  split_with: string | null
+}[]
   }
 ) {
   const supabase = createAdminClient()

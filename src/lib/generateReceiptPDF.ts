@@ -182,16 +182,23 @@ nameLines.forEach((line: string, i: number) => {
     }
 
     // Adicionais
-    item.options?.forEach(opt => {
-      doc.setFontSize(8)
-      doc.setFont('courier', 'normal')
-      const optLine = `+ ${opt.option_name}`
-      doc.text(optLine, MARGIN + 2, y)
-      if (opt.option_price > 0) {
-        doc.text(formatCurrency(opt.option_price), PAGE_WIDTH - MARGIN, y, { align: 'right' })
-      }
-      y += 3
-    })
+item.options?.forEach(opt => {
+  const qty      = (opt as any).quantity ?? 1
+  const prefix   = qty > 1 ? `${qty}x ` : ''
+  doc.setFontSize(8)
+  doc.setFont('courier', 'bold')
+  const optLine  = `  + ${prefix}${opt.option_name}`
+  const optPrice = opt.option_price > 0
+    ? formatCurrency(opt.option_price * qty)
+    : ''
+  if (optPrice) {
+    doc.text(optLine,  MARGIN, y)
+    doc.text(optPrice, PAGE_WIDTH - MARGIN, y, { align: 'right' })
+  } else {
+    doc.text(optLine, MARGIN, y)
+  }
+  y += 3.5
+})
 
     y += 1
   })

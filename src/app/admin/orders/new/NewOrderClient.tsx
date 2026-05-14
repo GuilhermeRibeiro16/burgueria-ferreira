@@ -80,12 +80,15 @@ const total       = subtotal + cardFeeAmt
             ? `Troco: ${formatCurrency(changeAmount)}`
             : undefined,
           notes: notes.trim() || undefined,
-          items: cart.items.map(item => ({
-            product_id: item.product.id,
-            quantity:   item.quantity,
-            options:    item.selectedOptions.map(o => ({ option_id: o.id })),
-            split_with: item.splitWith?.name ?? null,  // ← adicionar
-          })),
+items: cart.items.map(item => ({
+  product_id: item.product.id,
+  quantity:   item.quantity,
+  options:    item.selectedOptions.map(o => ({
+    option_id: o.id,
+    quantity:  o.quantity,  // ← adicionar
+  })),
+  split_with: item.splitWith?.name ?? null,
+})),
           card_fee: cardFeeAmt,
         })
 
@@ -201,19 +204,24 @@ const total       = subtotal + cardFeeAmt
           Produtos
         </p>
 
-        <ProductPicker products={products} onAdd={cart.addItem} />
+        <ProductPicker
+  products={products}
+  onAdd={(product, options, splitWith) =>
+    cart.addItem(product, options, splitWith)
+  }
+/>
 
         {/* Itens no carrinho */}
         {cart.items.length > 0 && (
           <>
             <Separator style={{ backgroundColor: 'var(--border)' }} />
             <div className="flex flex-col gap-3">
-{cart.items.map(item => {
-  const basePrice    = item.splitWith
-    ? Math.max(item.product.price, item.splitWith.price)
-    : item.product.price
-  const optionsTotal = item.selectedOptions.reduce((s, o) => s + o.price, 0)
-  const itemTotal    = (basePrice + optionsTotal) * item.quantity
+            {cart.items.map(item => {
+              const basePrice    = item.splitWith
+                ? Math.max(item.product.price, item.splitWith.price)
+                : item.product.price
+              const optionsTotal = item.selectedOptions.reduce((s, o) => s + o.price, 0)
+              const itemTotal    = (basePrice + optionsTotal) * item.quantity
 
   return (
     <div key={item.key} className="flex items-start justify-between gap-2">
@@ -226,11 +234,13 @@ const total       = subtotal + cardFeeAmt
             </span>
           )}
         </p>
-        {item.selectedOptions.map(o => (
-          <p key={o.id} className="text-xs" style={{ color: 'var(--text-subtle)' }}>
-            + {o.name} {o.price > 0 ? formatCurrency(o.price) : ''}
-          </p>
-        ))}
+{item.selectedOptions.map(o => (
+  <p key={o.id} className="text-xs" style={{ color: 'var(--text-subtle)' }}>
+    + {o.quantity > 1 ? `${o.quantity}x ` : ''}{o.name}{' '}
+    {o.price > 0 ? formatCurrency(o.price * o.quantity) : ''}
+  </p>
+))}
+
         <p className="text-xs mt-0.5" style={{ color: 'var(--brand)' }}>
           {formatCurrency(itemTotal)}
         </p>
