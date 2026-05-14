@@ -57,20 +57,21 @@ export function EditOrderSheet({
 
   // Inicializa carrinho com itens atuais do pedido
   // Usamos estado local para não conflitar com o hook
-  const [cartItems, setCartItems] = useState(() =>
-    order.items?.map(item => ({
-      key:      item.id,
-      productId: item.product_id ?? '',
-      name:     item.product_name,
-      price:    item.unit_price,
-      quantity: item.quantity,
-      options:  item.options?.map(o => ({
-        id:    o.id,
-        name:  o.option_name,
-        price: o.option_price,
-      })) ?? [],
-    })) ?? []
-  )
+const [cartItems, setCartItems] = useState(() =>
+  order.items?.map(item => ({
+    key:       item.id,
+    productId: item.product_id ?? '',
+    name:      item.product_name,
+    price:     item.unit_price,
+    quantity:  item.quantity,
+    options:   item.options?.map(o => ({
+      id:       o.id,
+      name:     o.option_name,
+      price:    o.option_price,
+      quantity: (o as any).quantity ?? 1,  // ← adicionar
+    })) ?? [],
+  })) ?? []
+)
 
   const deliveryFee = type === 'delivery'
     ? (deliveryZone === 'city' ? settings.delivery_fee_city : settings.delivery_fee_outside)
@@ -94,16 +95,21 @@ const total      = subtotal + cardFeeAmt
     ? parseFloat(changeFor.replace(',', '.')) - total
     : null
 
-  function handleAddProduct(product: Product, options: any[]) {
-    setCartItems(prev => [...prev, {
-      key:       `new-${Date.now()}`,
-      productId: product.id,
-      name:      product.name,
-      price:     product.price,
-      quantity:  1,
-      options:   options.map(o => ({ id: o.id, name: o.name, price: o.price })),
-    }])
-  }
+function handleAddProduct(product: Product, options: any[]) {
+  setCartItems(prev => [...prev, {
+    key:       `new-${Date.now()}`,
+    productId: product.id,
+    name:      product.name,
+    price:     product.price,
+    quantity:  1,
+    options:   options.map(o => ({
+      id:       o.option?.id    ?? o.id,
+      name:     o.option?.name  ?? o.name,
+      price:    o.option?.price ?? o.price,
+      quantity: o.quantity ?? 1,  // ← adicionar
+    })),
+  }])
+}
   
 
   function removeItem(key: string) {
@@ -137,13 +143,15 @@ const total      = subtotal + cardFeeAmt
             ? `Troco: ${formatCurrency(changeAmount)}`
             : undefined,
           notes: notes.trim() || undefined,
-          items: cartItems.map(item => ({
-            product_id: item.productId,
-            quantity:   item.quantity,
-            // Para itens novos temos option.id real
-            // Para itens existentes precisamos do option_id original
-            options: item.options.map(o => ({ option_id: o.id })),
-          })),
+items: cartItems.map(item => ({
+  product_id: item.productId,
+  quantity:   item.quantity,
+  options:    item.options.map(o => ({
+    option_id: o.id,
+    quantity:  o.quantity ?? 1,  // ← adicionar
+  })),
+  split_with: null,              // ← adicionar (edição não suporta divisão por ora)
+})),
         })
 
         toast.success('Pedido atualizado!')
@@ -253,11 +261,12 @@ const total      = subtotal + cardFeeAmt
                     <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                       {item.name}
                     </p>
-                    {item.options.map((o, i) => (
-                      <p key={i} className="text-xs" style={{ color: 'var(--text-subtle)' }}>
-                        + {o.name} {o.price > 0 ? formatCurrency(o.price) : ''}
-                      </p>
-                    ))}
+{item.options.map((o, i) => (
+  <p key={i} className="text-xs" style={{ color: 'var(--text-subtle)' }}>
+    + {o.quantity > 1 ? `${o.quantity}x ` : ''}{o.name}{' '}
+    {o.price > 0 ? formatCurrency(o.price * o.quantity) : ''}
+  </p>
+))}
                     <p className="text-xs mt-0.5" style={{ color: 'var(--brand)' }}>
                       {formatCurrency(itemTotal)}
                     </p>
