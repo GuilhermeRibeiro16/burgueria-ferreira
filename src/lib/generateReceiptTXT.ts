@@ -183,6 +183,12 @@ item.options?.forEach(opt => {
   add()
   add()
   add()
+  add()
+  add()
+  add()
+  add()
+  add()
+  add()
 
   return lines.join('\n')
 }
