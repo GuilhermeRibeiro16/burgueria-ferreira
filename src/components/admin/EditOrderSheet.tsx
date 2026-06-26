@@ -64,6 +64,7 @@ const [cartItems, setCartItems] = useState(() =>
     name:      item.product_name,
     price:     item.unit_price,
     quantity:  item.quantity,
+    split_with: (item as any).split_with ?? null,  // ← adicionar
     options:   item.options?.map(o => ({
       id:       o.id,
       name:     o.option_name,
@@ -102,6 +103,7 @@ function handleAddProduct(product: Product, options: any[]) {
     name:      product.name,
     price:     product.price,
     quantity:  1,
+    split_with: null,  // ← adicionar (edição não suporta divisão por ora)
     options:   options.map(o => ({
       id:       o.option?.id    ?? o.id,
       name:     o.option?.name  ?? o.name,
@@ -150,7 +152,7 @@ items: cartItems.map(item => ({
     option_id: o.id,
     quantity:  o.quantity ?? 1,  // ← adicionar
   })),
-  split_with: null,              // ← adicionar (edição não suporta divisão por ora)
+  split_with: item.split_with ?? null,  // ← era null fixo, agora preserva
 })),
         })
 
